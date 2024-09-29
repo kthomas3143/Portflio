@@ -1,34 +1,217 @@
-# insert data 
-HDFC_addresses <- read.csv("~/Downloads/UHAB - Sheet1 (2) 2.csv")
-
-# turn data into shapefile
-library(sf)
+library(readxl)
 library(dplyr)
-HDFC_shapefile <- HDFC_addresses %>% 
-  st_as_sf(coords = c("Latitude", "Longitude"), crs = 4326)
+#1970
+LTDB_1970 <- read.csv("~/Downloads/ltdb_std_all_fullcount/LTDB_Std_1970_fullcount.csv")
+LTDB_1970_sample <- read.csv("~/Downloads/ltdb_std_all_sample/ltdb_std_1970_sample.csv")
 
-HDFC_shapefile %>% 
-  st_as_sf(coords = c("Longitude", "Latitude")) %>% 
-  st_sf(crs = 4326)
+extra_data <- filter(LTDB_1970, 
+                     county == "Bronx County" | county == "Queens County" | county == "Kings County" 
+                     | county == "Richmond County" | county == "New York County" & state == "NY")
 
-st_write(HDFC_shapefile, "HDFC_shapefile.shp")
-if (st_crs(HDFC_shapefile) != st_crs(census_boroughs)) {
-  HDFC_shapefile <- st_transform(HDFC_shapefile, st_crs(census_2020))
-}
+LTDB_1970 <- filter(extra_data, state == "NY")
 
-census_2020 <- st_read("~/Downloads/nyct2020_24c/nyct2020.shp")
-census_2020 <- st_transform(census_2020, crs = st_crs("+proj=longlat +datum=WGS84"))
+LTDB_1970 <- left_join(LTDB_1970, LTDB_1970_sample, by = 'TRTID10')
+colnames(LTDB_1970)
 
-# combine shapefile with other shapefile
+tract_70 <- LTDB_1970 %>%  rename(hinc = HINC70,
+                                  owner = OWN70,
+                                  ohu = OHU70,
+                                  wht = WHITE70,
+                                  blk = BLACK70,
+                                  pop = POP70) %>%
+  mutate(
+    powner = owner / ohu,
+    pwht = wht / pop,
+    pblk = blk / pop
+  ) %>%
+  select(TRTID10, hinc, powner, pwht, pblk, pop) %>%
+  mutate(
+    across(c(powner, pwht, pblk), 
+           ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100)))),
+    year = "1970"
+  )
+#1980
+LTDB_1980 <- read.csv("~/Downloads/ltdb_std_all_fullcount/LTDB_Std_1980_fullcount.csv")
+LTDB_1980_sample <- read.csv("~/Downloads/ltdb_std_all_sample/ltdb_std_1980_sample.csv")
 
-matched_data <- st_join(census_2020, HDFC_shapefile, join = st_intersection)
+extra_data <- filter(LTDB_1980, 
+                     county == "Bronx County" | county == "Queens County" | county == "Kings County" 
+                     | county == "Richmond County" | county == "New York County" & state == "NY")
 
-intersection_data <- st_intersection(HDFC_shapefile, census_2020)
+LTDB_1980 <- filter(extra_data, state == "NY")
 
-result <- st_join(HDFC_shapefile, census_2020)
-library(mapview)
-mapview(HDFC_shapefile)
+LTDB_1980_sample <- LTDB_1980_sample %>% 
+  rename(TRTID10 = trtid10)
+
+LTDB_1980 <- left_join(LTDB_1980, LTDB_1980_sample, by = 'TRTID10')
+
+colnames(LTDB_1980)
 
 
-colnames(HDFC_shapefile)
-colnames(census_2020)
+
+tract_80 <- LTDB_1980 %>%  rename(hinc = hinc80,
+                                  owner = OWN80,
+                                  ohu = OHU80,
+                                  wht = NHWHT80,
+                                  blk = NHBLK80,
+                                  pop = POP80) %>%
+  mutate(powner = owner/ohu,
+         pwht = wht/pop,
+         pblk = blk/pop) %>%
+  select(TRTID10, hinc,
+         powner, pwht, pblk, pop) %>%
+  mutate(
+    across(c(powner, pwht, pblk), 
+           ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100))))
+  ) %>% mutate(year = "1980")
+
+#1990
+LTDB_1990 <- read.csv("~/Downloads/ltdb_std_all_fullcount/LTDB_Std_1990_fullcount.csv")
+LTDB_1990_sample <- read.csv("~/Downloads/ltdb_std_all_sample/ltdb_std_1990_sample.csv")
+
+extra_data <- filter(LTDB_1990, 
+                     county == "Bronx County" | county == "Queens County" | county == "Kings County" 
+                     | county == "Richmond County" | county == "New York County" & state == "NY")
+
+LTDB_1990 <- filter(extra_data, state == "NY")
+
+LTDB_1990 <- left_join(LTDB_1990, LTDB_1990_sample, by = 'TRTID10')
+colnames(LTDB_1990)
+
+tract_90 <- LTDB_1990 %>%  rename(hinc = HINC90,
+                                  owner = OWN90,
+                                  ohu = OHU90,
+                                  wht = NHWHT90,
+                                  blk = NHBLK90,
+                                  pop = POP90) %>%
+  mutate(powner = owner/ohu,
+         pwht = wht/pop,
+         pblk = blk/pop) %>%
+  select(TRTID10, hinc,
+         powner, pwht, pblk, pop) %>%
+                mutate(
+                  across(c(powner, pwht, pblk), 
+                         ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100))))
+                ) %>% mutate(year = "1990")
+
+#2000
+LTDB_2000 <- read.csv("~/Downloads/ltdb_std_all_fullcount/LTDB_Std_2000_fullcount.csv")
+LTDB_2000_sample <- read.csv("~/Downloads/ltdb_std_all_sample/ltdb_std_2000_sample.csv")
+
+extra_data <- filter(LTDB_2000, 
+                     county == "Bronx County" | county == "Queens County" | county == "Kings County" 
+                     | county == "Richmond County" | county == "New York County" & state == "NY")
+
+LTDB_2000 <- filter(extra_data, state == "NY")
+
+LTDB_2000 <- left_join(LTDB_2000, LTDB_2000_sample, by = 'TRTID10')
+colnames(LTDB_2000)
+
+tract_2000 <- LTDB_2000 %>%  rename(hinc = HINC00.y,
+                                    owner = OWN00,
+                                    ohu = HU00,
+                                    wht = NHWHT00,
+                                    blk = NHBLK00,
+                                    pop = POP00) %>%
+  mutate(powner = owner/ohu,
+         pwht = wht/pop,
+         pblk = blk/pop) %>%
+  select(TRTID10, hinc,
+         powner, pwht, pblk, pop) %>%
+  mutate(
+    across(c(powner, pwht, pblk), 
+           ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100))))
+  ) %>% mutate(year = "2000")
+#2010
+LTDB_2010 <- read.csv("~/Downloads/ltdb_std_all_fullcount/LTDB_Std_2010_fullcount.csv")
+LTDB_2008_2012_sample <- read.csv("~/Downloads/ltdb_std_all_sample/LTDB_std_200812_Sample.csv")
+
+extra_data <- filter(LTDB_2010, 
+                     county == "Bronx County" | county == "Queens County" | county == "Kings County" 
+                     | county == "Richmond County" | county == "New York County" & state == "NY")
+
+LTDB_2010 <- filter(extra_data, state == "NY")
+LTDB_2010 <- LTDB_2010 %>% rename(TRTID10 = tractid)
+LTDB_2008_2012_sample <- LTDB_2008_2012_sample %>% rename(TRTID10 = tractid)
+
+LTDB_2010 <- left_join(LTDB_2010, LTDB_2008_2012_sample, by = 'TRTID10')
+colnames(LTDB_2010)
+
+tract_2010 <- LTDB_2010 %>%  rename(hinc = hinc12,
+                                    owner = own10,
+                                    ohu = hu10,
+                                    wht = nhwht10,
+                                    blk = nhblk10,
+                                    pop = pop10) %>%
+  mutate(powner = owner/ohu,
+         pwht = wht/pop,
+         pblk = blk/pop) %>%
+  select(TRTID10, hinc,
+         powner, pwht, pblk, pop) %>%
+  mutate(
+    across(c(powner, pwht, pblk), 
+           ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100))))
+  ) %>% mutate(year = "2010")
+
+#2020
+LTDB_2020 <- read.csv("~/Downloads/ltdb_std_all_fullcount/ltdb_std_2020_fullcount.csv")
+LTDB_2015_2019_sample <- read.csv("~/Downloads/ltdb_std_all_sample/LTDB_std_201519_Sample.csv")
+LTDB_2020 <- LTDB_2020 %>% rename(TRTID10 = TRTID2010)
+LTDB_2015_2019_sample <- LTDB_2015_2019_sample %>% rename(TRTID10 = tractid)
+install.packages("sf")
+library(sf)
+str(LTDB_2020)
+census_2020_shp <- st_read("~/Downloads/nyct2020_24c/nyct2020.shp")
+census_2020_shp <- census_2020_shp %>% rename(TRTID10 = GEOID)
+census_2020_shp$TRTID10 <- as.numeric(census_2020_shp$TRTID10)
+LTDB_2020_with_shp <- left_join(census_2020_shp, LTDB_2020, by = "TRTID10")  
+LTDB_2020 <- LTDB_2020_with_shp %>% select(-CTLabel,-BoroCode,-BoroName, -BoroCT2020,-CDEligibil,-NTAName, -NTA2020, -CDTA2020,-CDTANAME, -PUMA, -Shape_Leng, -Shape_Area, -geometry, -CT2020 )
+LTDB_2020 <- LTDB_2020 %>% select(-geometry)
+colnames(LTDB_2015_2019_sample)
+LTDB_2020 <- left_join(LTDB_2020, LTDB_2015_2019_sample)
+colnames(LTDB_2020)
+
+tract_2020 <- LTDB_2020 %>%  rename(hinc = hinc19,
+                                    owner = own19,
+                                    ohu = hu19,
+                                    wht = nhwt20,
+                                    blk = nhblk20,
+                                    pop = pop20) %>%
+  mutate(powner = owner/ohu,
+         pwht = wht/pop,
+         pblk = blk/pop) %>%
+  select(TRTID10, hinc,
+         powner, pwht, pblk, pop) %>%
+  mutate(
+    across(c(powner, pwht, pblk), 
+           ~ ifelse(is.na(.), NA, paste0(sprintf("%.2f", . * 100))))
+  ) %>% mutate(year = "2020")
+
+# combining all years
+tract <- bind_rows(tract_70, tract_80, tract_90, tract_2000, tract_2010, tract_2020) %>% group_by(year)%>% select(year, everything()) %>% group_by(year) %>%
+  distinct() 
+
+coops <- read.csv("~/Downloads/Clean UHAB Data - Sheet1 (1).csv")
+# Convert to sf object
+coops_shp <- st_as_sf(coops, coords = c("Longitude", "Latitude"), crs = 4326)  # EPSG:4326 is the WGS 84 coordinate system
+
+coops_shp <- st_transform(coops_shp, st_crs(census_2020_shp))
+
+library(sf)
+coop_tract_intersect <- st_intersection(census_2020_shp, coops_shp) %>%
+  as_tibble() %>%
+  select(-geometry, -CDEligibil)  
+
+coops7020 <- left_join(coop_tract_intersect, tract, by = "TRTID10") %>% select(-geometry, -CTLabel, -CT2020, -BoroCT2020, -NTA2020, -CDTA2020, -PUMA, -Shape_Leng, -Shape_Area)
+
+
+library(writexl)
+
+
+
+# Export to Excel
+
+write_xlsx(coops7020, "coops7020.xlsx")
+
+
+
