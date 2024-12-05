@@ -5,7 +5,7 @@ library(ggplot2) # Used for graphing
 library(RColorBrewer) # Color Palettes for Graphs 
 library(plotly) #Interactive plots
 library(patchwork) #Show charts together 
- hi
+library(vcd) #Cramer V's table
 ### Reading Data #### 
 vehicles2022 <- read.csv("~/Downloads/CRSS2022CSV/vehicle.csv")
 vehicles2021 <- read.csv("~/Downloads/CRSS2021CSV/vehicle.csv")
@@ -71,7 +71,7 @@ weather_countspop1 <- vhmakewthr %>%
 countvhm <- ggplot(weather_countspop1, aes(x = make, y = count, text = paste("Make: ", make, "<br>Weather: ", weather, "<br>Count: ", count))) +
   geom_bar(stat = "identity", fill = "pink", color = "black") +
   labs(
-    title = "Number of Accidents per Vehicle Make",
+    title = "Number of Accidents per Vehicle Make Total",
     x = "Vehicle Make",
     y = "Number of Accidents"
   ) +
@@ -87,6 +87,24 @@ sampled_data <- vhmakewthr %>%
   group_by(make) %>%                    # Group by the 'make' column
   sample_n(1600, replace = FALSE) %>%     #only 1666 Audis in the data, so must be less than 
   ungroup()
+
+
+# Contigency Table ####
+
+contingency_weather <- sampled_data %>% select(weather, make) 
+
+contingency_weather$weather <- ifelse(contingency_weather$weather == "Rain", 1, 0)
+
+contingency_table <- table(contingency_weather$make, contingency_weather$make)
+
+print(contingency_table)
+
+chisq.test(contingency_table) #There is a correlation 
+
+assocstats(contingency_table) #Cramer's V 
+
+model <- glm(weather ~ make, family = binomial(link = "logit"), data = contingency_weather) #Logistics 
+summary(model) 
 
 # Creating count for each make in weather with sample data
 weather_countspop2 <- sampled_data %>%
