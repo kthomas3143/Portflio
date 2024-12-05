@@ -1,7 +1,12 @@
-library(dplyr)
-library(ggplot2)
-library(RColorBrewer)
-### Reading Data ####
+### Packages ####
+
+library(dplyr) #Data wrangling tools
+library(ggplot2) # Used for graphing
+library(RColorBrewer) # Color Palettes for Graphs 
+library(plotly) #Interactive plots
+library(patchwork) #Show charts together 
+ hi
+### Reading Data #### 
 vehicles2022 <- read.csv("~/Downloads/CRSS2022CSV/vehicle.csv")
 vehicles2021 <- read.csv("~/Downloads/CRSS2021CSV/vehicle.csv")
 vehicles2020 <- read.csv("~/Downloads/CRSS2020CSV/vehicle.csv")
@@ -11,47 +16,37 @@ weather2020 <- read.csv("~/Downloads/CRSS2020CSV/weather.csv")
 accident2020 <- read.csv("~/Downloads/CRSS2020CSV/accident.csv")
 accident2021 <- read.csv("~/Downloads/CRSS2021CSV/accident.csv")
 accident2022 <- read.csv("~/Downloads/CRSS2022CSV/accident.csv")
+
+
 # 2020 data cleaning ####
-hnr2020 <- vehicles2020 %>% mutate(Year = 2020) %>% select(Year, CASENUM, HIT_RUNNAME) %>% rename(hit_run = HIT_RUNNAME, casenum = CASENUM)
-cleanweather2020 <- weather2020 %>% select(CASENUM, WEATHERNAME) %>% rename(casenum = CASENUM, weather = WEATHERNAME)
-hnrwthr2020 <- left_join(hnr2020, cleanweather2020, by = "casenum")
-yeshnr <- hnrwthr2020 %>% filter(hit_run == "Yes") %>% 
+
+cleanweather2020 <- weather2020 %>% 
+  select(CASENUM, WEATHERNAME) %>% #Selecting columns I need
+  rename(casenum = CASENUM, weather = WEATHERNAME) %>% #Simplifying column names 
   mutate(weather = recode(weather, "Not Reported" = "NR", "Freezing Rain or Drizzle" = "Rain", "Reported as Unknown" = "NR", 
                           "Fog, Smog, Smoke" = "Smoke", "Severe Crosswinds" = "Windy", 
-                          "Blowing Snow" = "Snow"))
+                          "Blowing Snow" = "Snow")) #Making names smaller for cleaner graph 
 
+ 
 
 # 2021 data cleaning ####
-hnr2021 <- vehicles2021 %>% mutate(Year = 2021) %>% select(Year,CASENUM, HIT_RUNNAME) %>% rename(hit_run = HIT_RUNNAME, casenum = CASENUM)
-cleanweather2021 <- weather2021 %>% select(CASENUM, WEATHERNAME) %>% rename(casenum = CASENUM, weather = WEATHERNAME)
-hnrwthr2021 <- left_join(hnr2021, cleanweather2021, by = "casenum") #FINAL ONE BEFORE YES OR NO  
-yeshnr21 <- hnrwthr2021 %>% filter(hit_run == "Yes") %>% 
-  mutate(weather = recode(weather, "Not Reported" = "NR", "Freezing Rain or Drizzle" = "Rain", "Reported as Unknown" = "NR", 
+cleanweather2021 <- weather2021 %>% 
+  select(CASENUM, WEATHERNAME) %>% #Selecting columns I need
+  rename(casenum = CASENUM, weather = WEATHERNAME) %>% #Simplifying column names 
+ mutate(weather = recode(weather, "Not Reported" = "NR", "Freezing Rain or Drizzle" = "Rain", "Reported as Unknown" = "NR", 
                           "Fog, Smog, Smoke" = "Smoke", "Severe Crosswinds" = "Windy", 
                           "Blowing Snow" = "Snow", "Blowing Sand, Soil, Dirt" = "Windy"))
 
 # 2022 data cleaning ####
-hnr2022 <- vehicles2022 %>% mutate(Year = 2022) %>% select(Year, CASENUM, HIT_RUNNAME) %>% rename(hit_run = HIT_RUNNAME, casenum = CASENUM)
-cleanweather2022 <- weather2022 %>% select(CASENUM, WEATHERNAME) %>% rename(casenum = CASENUM, weather = WEATHERNAME)
-hnrwthr2022 <- left_join(hnr2022, cleanweather2022, by = "casenum") #FINAL ONE BEFORE YES OR NO  
-yeshnr22 <- hnrwthr2022 %>% filter(hit_run == "Yes") %>% 
+cleanweather2022 <- weather2022 %>% 
+  select(CASENUM, WEATHERNAME) %>% #Selecting columns I need
+  rename(casenum = CASENUM, weather = WEATHERNAME) %>% #Simplifying column names 
   mutate(weather = recode(weather, "Not Reported" = "NR", "Freezing Rain or Drizzle" = "Rain", "Reported as Unknown" = "NR", 
                           "Fog, Smog, Smoke" = "Smoke", "Severe Crosswinds" = "Windy", 
-                          "Blowing Snow" = "Snow")) 
-
-# Combining Datasets for Yes Hit-and-run #### 
-combinedhnr <- rbind(yeshnr,yeshnr21, yeshnr22) 
-
-# Creating Barplot ####
-ggplot(combinedhnr, aes(x = weather, y = hit_run)) +
-  geom_col(fill = "pink") +  # Set color of the bars
-  labs(title = "Hit-And-Run Reported Weather", 
-       x = "Weather Reported", 
-       y = "Count") +
-  theme_minimal() 
+                          "Blowing Snow" = "Snow", "Blowing Sand, Soil, Dirt" = "Windy"))
 
 
-# rainy vehicles data #### 
+#  vehicles data cleaning #### 
 
 unique(vehicles2020$MAKENAME)
 
@@ -64,19 +59,44 @@ vhmakewthr2021 <- left_join(vhmake2021, cleanweather2021, by = "casenum")
 vhmake2022 <- vehicles2022 %>% mutate(Year = 2022) %>% select(Year, CASENUM, MAKENAME) %>% rename(casenum = CASENUM, make = MAKENAME) %>% filter(make %in% c("Toyota", "Hyundai", "Nissan/Datsun", "BMW", "Audi", "Mercedes-Benz"))
 vhmakewthr2022 <- left_join(vhmake2022, cleanweather2022, by = "casenum") 
 
-vhmakewthr <- rbind(vhmakewthr2020, vhmakewthr2021, vhmakewthr2022)
+vhmakewthr <- rbind(vhmakewthr2020, vhmakewthr2021, vhmakewthr2022) 
 
+#Creating count dataset for overall data
+weather_countspop1 <- vhmakewthr %>%
+  count(make, weather) %>% rename("count" = "n") %>% filter(weather %in% c("Rain", "Clear", "Cloudy", "Snow"))
+
+
+# Coding for plot to show overall count of accidents per vehicle make 
+
+countvhm <- ggplot(weather_countspop1, aes(x = make, y = count, text = paste("Make: ", make, "<br>Weather: ", weather, "<br>Count: ", count))) +
+  geom_bar(stat = "identity", fill = "pink", color = "black") +
+  labs(
+    title = "Number of Accidents per Vehicle Make",
+    x = "Vehicle Make",
+    y = "Number of Accidents"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
+#Making it interactive with hover information 
+plot1 <- ggplotly(countvhm, tooltip = "text")
+plot1
+
+
+# Creating my sample ####
 sampled_data <- vhmakewthr %>%
   group_by(make) %>%                    # Group by the 'make' column
   sample_n(1600, replace = FALSE) %>%     #only 1666 Audis in the data, so must be less than 
   ungroup()
 
+# Creating count for each make in weather with sample data
+weather_countspop2 <- sampled_data %>%
+  count(make, weather) %>% rename("count" = "n") %>% filter(weather %in% c("Rain", "Clear", "Cloudy", "Snow")) %>%
+  mutate(percent = count / 1600) 
 
-make_weather_counts <- sampled_data %>%
-  count(make, weather) %>% rename("count" = "n") %>% filter(weather %in% c("Rain", "Clear", "Cloudy", "Snow"))
-
-# Stacked BAr Graph 
-ggplot(make_weather_counts, aes(x = make, y = count, fill = weather)) +
+rainy_count <- weather_countspop2 %>% filter(weather == "Rain") 
+rainy_count 
+# Stacked Bar Graph sample data
+stacked <- ggplot(weather_countspop2, aes(x = make, y = count, fill = weather, text = paste("Make: ", make, "<br>Weather: ", weather, "<br>Count: ", count))) +
   geom_bar(stat = "identity", position = "stack") + 
   scale_fill_brewer(palette = "Pastel1") +# Use 'stat = "identity"' to specify that y is pre-calculated
   labs(title = "Rain vs Non-Rain Crashes by Car Make",
@@ -84,16 +104,21 @@ ggplot(make_weather_counts, aes(x = make, y = count, fill = weather)) +
        y = "Count of Crashes") +
   theme_minimal()
 
+plot2 <- ggplotly(stacked, tooltip = "text")
+plot2 
 
-
-#Pie Chart
+#Pie Chart sample data 
 rain_crashes <- sampled_data %>%
   filter(weather == "Rain") %>%
   group_by(make) %>%
   summarise(count = n())  
 
-# Create a pie chart
-ggplot(rain_crashes, aes(x = "", y = count, fill = make)) +
+clear_crashes <- sampled_data %>% 
+  filter(weather == "Clear") %>% 
+  group_by(make) %>% 
+  summarise(count = n()) 
+# Create a pie chart sample data
+pie_chart1 <- ggplot(rain_crashes, aes(x = "", y = count, fill = make, text = paste("Make: ", make, "<br>Count: ", count))) +
   geom_bar(stat = "identity", width = 1) +
   scale_fill_brewer(palette = "Pastel1") +
   coord_polar(theta = "y") +  # Convert bar chart to pie chart
@@ -102,44 +127,31 @@ ggplot(rain_crashes, aes(x = "", y = count, fill = make)) +
   theme(axis.text.x = element_blank())  # Remove x-axis labels (they are not needed for a pie chart)
 
 
+pie_chart2 <- ggplot(clear_crashes, aes(x = "", y = count, fill = make)) +
+  geom_bar(stat = "identity", width = 1) +
+  scale_fill_brewer(palette = "Pastel1") +
+  coord_polar(theta = "y") +  # Convert bar chart to pie chart
+  labs(title = "Proportion of Clear Crashes by Car Make") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())  # Remove x-axis labels (they are not needed for a pie chart)
 
-# Accident data 
-cleanacc2020 <- accident2020 %>% rename(casenum = CASENUM, year = YEAR, num_inj = NUM_INJ) %>% select(year, casenum, num_inj)
-accwth2020 <- left_join(cleanacc2020, cleanweather2020, by = "casenum")
-cleanacc2021 <- accident2021 %>% rename(casenum = CASENUM, year = YEAR, num_inj = NUM_INJ) %>% select(year, casenum, num_inj)
-accwth2021 <- left_join(cleanacc2021, cleanweather2021, by = "casenum")
-cleanacc2022 <- accident2022 %>% rename(casenum = CASENUM, year = YEAR, num_inj = NUM_INJ) %>% select(year, casenum, num_inj)
-accwth2022 <- left_join(cleanacc2022, cleanweather2022, by = "casenum")
+# Creating sample data with 4 main weather conditions
 
-accwth <- rbind(accwth2020, accwth2021, accwth2022) %>% filter(num_inj !=99) %>% filter(num_inj != 98) %>% filter(weather == "Rain")
-
-
-account <- accwth %>%
-  group_by(year, num_inj, weather) %>%
-  summarize(count = n(), .groups = "drop")
+vhmakewthr2 <- sampled_data %>% filter(weather %in% c("Rain", "Clear", "Cloudy", "Snow"))
 
 
-ggplot(account, aes(x = factor(num_inj), y = count, fill = weather)) +
-  geom_bar(stat = "identity", position = "dodge") +  # 'dodge' to place bars side by side
-  facet_wrap(~ year) +  # Create separate plots for each year
-  labs(title = "Injury Cases by Weather and Year",
-       x = "Number of Injuries",
-       y = "Count of Cases") + 
-  scale_fill_manual(values = c("1" = "lightgreen", "2" = "yellow", 
-                               "3" = "orange", "4" = "red", "5" = "purple", 
-                               "6" = "blue", "7" = "pink", "8" = "brown", 
-                               "9" = "cyan", "10" = "black")) + 
-  theme_minimal() 
+piecharts <- pie_chart1 + pie_chart2
+
+# Distribution of Vehicle Makes by Rainy Condition Sample data
+ggplot(vhmakewthr2, aes(x = make, fill = make)) +
+  geom_bar() +
+  facet_wrap(~ weather) + 
+  labs(title = "Distribution of Vehicle Makes by Rainy Condition",
+       x = "Vehicle Make", y = "Number of Crashes") +  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Pastel1")
 
 
 
-ggplot(account, aes(x = factor(num_inj), y = count, fill = factor(num_inj))) +
-  geom_bar(stat = "identity", position = "dodge") +  # Dodge to separate bars
-  facet_wrap(~ year) +  # Facet by year
-  labs(title = "Injury Cases by Year and Weather",
-       x = "Number of Injuries",
-       y = "Count of Cases") +
-  scale_fill_manual(values = c("0" = "pink3", "1" = "lightblue", "2" = "pink", 
-                               "3" = "lightblue3", "4" = "pink4", "5" = "lightblue4")) +  # Manually set colors
-  theme_minimal()
+
  
