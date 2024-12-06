@@ -95,7 +95,7 @@ contingency_weather <- sampled_data %>% select(weather, make)
 
 contingency_weather$weather <- ifelse(contingency_weather$weather == "Rain", 1, 0)
 
-contingency_table <- table(contingency_weather$make, contingency_weather$make)
+contingency_table <- table(contingency_weather$make, contingency_weather$weather)
 
 print(contingency_table)
 
